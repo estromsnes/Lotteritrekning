@@ -89,7 +89,7 @@ body.vis{background:#07160e}
 <section id="setup">
 <h2>1. Legg til loddbøker</h2>
 <div class="add">
-<div><label>Bokstav / prefiks</label><input type="text" id="pre" maxlength="6" placeholder="K" autocomplete="off"></div>
+<div><label>Bokstav (valgfri)</label><input type="text" id="pre" maxlength="6" placeholder="K" autocomplete="off"></div>
 <div><label>Fra nr.</label><input type="number" id="from" min="0" value="1"></div>
 <div><label>Til nr.</label><input type="number" id="to" min="0" value="100"></div>
 <button id="addbtn">Legg til</button>
@@ -100,7 +100,7 @@ body.vis{background:#07160e}
 <div class="note" id="pool"></div>
 </section>
 <section id="rules">
-<h2>Projektor / storskjerm</h2>
+<h2>Valgfritt: projektor og sikkerhetskopi</h2>
 <p style="margin:0 0 8px">Sett opp alt her, og vis trekningen på en egen skjerm:</p>
 <div class="row" style="margin-top:0">
 <button id="openvis">Åpne projektorvisning i nytt vindu</button>
@@ -112,6 +112,12 @@ body.vis{background:#07160e}
 <button class="sec" id="undo">Angre siste trekning</button>
 <button class="red" id="reset">Nullstill alt</button>
 </div>
+<div class="row">
+<button class="sec" id="export">Lagre sikkerhetskopi</button>
+<button class="sec" id="import">Last inn sikkerhetskopi</button>
+<input type="file" id="importfile" accept=".json,application/json" style="display:none">
+</div>
+<div class="note">Dataene lagres bare i denne nettleseren. Lagre en sikkerhetskopi hvis du vil flytte oppsettet til en annen maskin, eller for sikkerhets skyld før trekningen.</div>
 </section>
 <section id="draw">
 <h2>2. Trekning</h2>
@@ -148,8 +154,8 @@ body.vis{background:#07160e}
 </div>
 
 <script>
-const KEY="lotteri_generell_v3",SUGG="KRSTBGD".split("");
-let st={title:"Skautrollet 4H – Høstfest lotteri",books:[],draws:[],nid:1,prize:""};
+const KEY="lotteri_generell_v3",SUGG="ABCDEFGH".split("");
+let st={title:"",books:[],draws:[],nid:1,prize:""};
 const loadSt=()=>{try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.books&&s.draws)return s;}catch(e){}return null;};
 st=loadSt()||st;
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}};
@@ -167,8 +173,8 @@ const validCount=()=>st.draws.filter(d=>!d.void).length;
 /* ---------- Oppsett ---------- */
 function addBook(){
   const pre=$("pre").value.trim().toUpperCase(),from=parseInt($("from").value),to=parseInt($("to").value);
-  if(!pre){$("pre").focus();return;}
-  if(isNaN(from)||isNaN(to)||to<from){alert("Sjekk fra- og til-nummer.");return;}
+  if(isNaN(from)||isNaN(to)){alert("Fyll inn både «Fra nr.» og «Til nr.».");return;}
+  if(to<from){alert("«Til nr.» ("+to+") kan ikke være mindre enn «Fra nr.» ("+from+").");return;}
   st.books.push({id:st.nid++,pre,from,to});
   commit();$("pre").value="";$("from").value=1;$("to").value=100;$("pre").focus();
 }
@@ -179,17 +185,17 @@ function renderChips(){
 }
 function renderBooks(){
   const box=$("books");box.innerHTML="";
-  if(!st.books.length){box.innerHTML='<div class="note">Ingen loddbøker lagt til ennå.</div>';return;}
+  if(!st.books.length){box.innerHTML='<div class="note">Ingen loddbøker lagt til ennå. Eksempel: bokstav <b>K</b>, fra <b>1</b>, til <b>63</b> gir lodd K1 til K63. La bokstaven stå tom hvis loddene bare har tall.</div>';return;}
   st.books.forEach(b=>{
     const d=document.createElement("div");d.className="book";
     d.innerHTML=`<b></b><input type="number" min="0" value="${b.from}"><span>–</span><input type="number" min="0" value="${b.to}"><span class="n"></span><button class="x" title="Fjern bok">✕</button>`;
-    d.children[0].textContent=b.pre;
+    d.children[0].textContent=b.pre||"Nr.";
     d.children[4].textContent=Math.max(0,b.to-b.from+1)+" lodd";
     d.children[1].onchange=e=>{const v=parseInt(e.target.value);if(!isNaN(v)&&v<=b.to){b.from=v;commit();}else e.target.value=b.from;};
     d.children[3].onchange=e=>{const v=parseInt(e.target.value);if(!isNaN(v)&&v>=b.from){b.to=v;commit();}else e.target.value=b.to;};
     d.children[5].onclick=()=>{
-      const won=st.draws.filter(x=>!x.void&&x.t.startsWith(b.pre)).length;
-      if(confirm("Fjerne bok "+b.pre+(won?" (har "+won+" vinnerlodd i listen – de blir stående)":"")+"?")){st.books=st.books.filter(x=>x.id!==b.id);commit();}};
+      const won=st.draws.filter(x=>!x.void&&(b.pre?x.t.startsWith(b.pre):/^\d+$/.test(x.t))).length;
+      if(confirm("Fjerne bok "+(b.pre||"uten bokstav")+(won?" (har "+won+" vinnerlodd i listen – de blir stående)":"")+"?")){st.books=st.books.filter(x=>x.id!==b.id);commit();}};
     box.appendChild(d);
   });
 }
@@ -309,7 +315,28 @@ $("prize2").oninput=()=>{st.prize=$("prize2").value;commit();};
 $("drawbtn").onclick=doDraw;$("drawbtn2").onclick=doDraw;
 $("absent").onclick=doAbsent;$("absent2").onclick=doAbsent;
 $("undo").onclick=()=>{if(st.draws.length&&confirm("Fjerne siste trekning ("+st.draws[st.draws.length-1].t+")? Loddet blir tilgjengelig igjen.")){st.draws.pop();commit();}};
-$("reset").onclick=()=>{if(confirm("Nullstille ALT (loddbøker og trekninger)?")){st.books=[];st.draws=[];st.prize="";commit();}};
+$("reset").onclick=()=>{if(confirm("Nullstille ALT (loddbøker og trekninger)? Dette kan ikke angres. Lagre gjerne en sikkerhetskopi først.")){st.books=[];st.draws=[];st.prize="";commit();}};
+$("export").onclick=()=>{
+  const a=document.createElement("a"),d=new Date().toISOString().slice(0,10);
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(st,null,1)],{type:"application/json"}));
+  a.download="lotteri-"+d+".json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+};
+$("import").onclick=()=>$("importfile").click();
+$("importfile").onchange=e=>{
+  const f=e.target.files[0];e.target.value="";if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const s=JSON.parse(r.result);
+      const okB=b=>b&&typeof b.pre==="string"&&Number.isInteger(b.from)&&Number.isInteger(b.to),okD=d=>d&&typeof d.t==="string";
+      if(!s||!Array.isArray(s.books)||!Array.isArray(s.draws)||!s.books.every(okB)||!s.draws.every(okD))throw 0;
+      if(!confirm("Erstatte dagens oppsett og trekninger med innholdet i «"+f.name+"»?"))return;
+      s.nid=Math.max(s.nid||1,...s.books.map(b=>(b.id||0)+1));
+      st=s;commit();
+    }catch(err){alert("Kunne ikke lese filen. Velg en sikkerhetskopi som er lagret fra dette verktøyet.");}
+  };
+  r.readAsText(f);
+};
 $("openvis").onclick=()=>window.open(location.href.split("#")[0]+"#vis","lotteri_vis","width=1280,height=720");
 $("openpres").onclick=()=>{openPres();toggleFS();};
 $("closebtn").onclick=closePres;
