@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lotteritrekning</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f3f5f0;color:#222}
+header{background:#3b6b35;color:#fff;padding:12px 20px}
+header input{background:transparent;border:0;border-bottom:1px dashed #cfe3cb;color:#fff;font-size:22px;font-weight:bold;width:100%;max-width:600px;padding:2px 0}
+header input::placeholder{color:#cfe3cb}
+main{max-width:1000px;margin:0 auto;padding:16px;display:grid;gap:16px;grid-template-columns:1fr 1fr}
+@media(max-width:800px){main{grid-template-columns:1fr}}
+section{background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 4px #0002}
+h2{margin:0 0 10px;font-size:17px}
+input[type=number],input[type=text]{padding:7px;font-size:16px;border:1px solid #bbb;border-radius:6px;width:100%}
+button{font-size:16px;padding:10px 16px;border:0;border-radius:8px;background:#3b6b35;color:#fff;cursor:pointer}
+button.sec{background:#e3e7df;color:#222}
+button.red{background:#b3402f}
+button.x{background:none;color:#b3402f;padding:4px 8px;font-size:18px}
+button:disabled{opacity:.4;cursor:default}
+.add{display:grid;grid-template-columns:90px 80px 80px auto;gap:8px;align-items:end}
+.add label{font-size:12px;color:#555;display:block;margin-bottom:2px}
+.chips{margin:8px 0;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:#555}
+.chip{background:#e3e7df;color:#222;padding:4px 10px;font-size:15px;font-weight:bold;border-radius:14px}
+#books{margin-top:10px;display:grid;gap:6px}
+.book{display:grid;grid-template-columns:70px 70px 14px 70px 1fr auto;gap:6px;align-items:center;border:1px solid #e0e4dc;border-radius:8px;padding:6px 8px}
+.book b{font-size:20px;overflow:hidden;text-overflow:ellipsis}
+.book .n{font-size:13px;color:#666}
+.book input{padding:5px}
+#draw{grid-column:1/-1}
+.prize{max-width:420px;margin-bottom:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+#last{font-size:44px;font-weight:bold;color:#3b6b35;margin:8px 0}
+#last.void{text-decoration:line-through;color:#b3402f}
+table{width:100%;border-collapse:collapse}
+th,td{border-bottom:1px solid #ddd;padding:6px;text-align:left}
+td.t{font-weight:bold;font-size:18px}
+tr.void td{color:#999;text-decoration:line-through}
+#hist{grid-column:1/-1}
+.note{font-size:13px;color:#666;margin-top:8px}
+#pool{font-weight:bold;color:#333}
+
+/* ---------- Projektorvisning ---------- */
+#stage{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;align-items:center;justify-content:space-between;
+ padding:3vh 4vw 2vh;color:#fff;overflow:hidden;font-family:Georgia,"Times New Roman",serif;
+ background:radial-gradient(ellipse at 50% 35%,#256b45 0%,#12351f 55%,#07160e 100%)}
+body.pres #stage,body.vis #stage{display:flex}
+body.vis main,body.vis header{display:none}
+body.vis{background:#07160e}
+#stage .top{text-align:center;z-index:2}
+#stTitle{font-size:5.2vw;font-weight:bold;line-height:1.1;background:linear-gradient(180deg,#fff3b0,#e0a83a);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 30px #e0a83a55;filter:drop-shadow(0 2px 6px #0008)}
+#stSub{font-size:2.2vw;letter-spacing:.4vw;text-transform:uppercase;color:#cfe8d3;margin-top:1vh;font-family:Arial,sans-serif}
+#stPrize{font-size:3.4vw;margin-top:2.2vh;min-height:4.4vw;color:#ffe9a8;z-index:2;text-align:center;max-width:90vw}
+#stPrize span{display:inline-block;padding:.6vh 2vw;border:.25vw solid #e0a83a77;border-radius:5vw;background:#0004}
+#stPrize:empty{visibility:hidden}
+#tkwrap{z-index:2;display:flex;align-items:center;justify-content:center;flex:1;width:100%}
+#tk{position:relative;background:linear-gradient(135deg,#fffbe6,#f6dc8b);color:#17492a;border:.5vw dashed #b8821f;border-radius:2.5vw;
+ padding:1vh 5vw;font-family:Arial Black,Arial,sans-serif;font-weight:900;line-height:1.15;letter-spacing:.4vw;text-align:center;white-space:nowrap;
+ box-shadow:0 0 6vw #ffd86655,0 1vh 4vh #000a;min-width:30vw;transition:filter .2s}
+#tk::before,#tk::after{content:"";position:absolute;top:50%;width:5vw;height:5vw;margin-top:-2.5vw;border-radius:50%;background:#12351f;border:.5vw dashed #b8821f}
+#tk::before{left:-3.3vw}#tk::after{right:-3.3vw}
+#tk.spin{filter:blur(1.5px);color:#4a6b55}
+#tk.void{color:#b3402f;text-decoration:line-through;filter:grayscale(.6)}
+#tk.pop{animation:pop .9s cubic-bezier(.2,1.4,.4,1),glow 2s ease-in-out .9s infinite}
+@keyframes pop{0%{transform:scale(.7) rotate(-3deg)}60%{transform:scale(1.12) rotate(1deg)}100%{transform:scale(1)}}
+@keyframes glow{0%,100%{box-shadow:0 0 6vw #ffd86655,0 1vh 4vh #000a}50%{box-shadow:0 0 12vw #ffd866cc,0 1vh 4vh #000a}}
+#stRecent{display:flex;gap:1vw;justify-content:center;flex-wrap:wrap;min-height:5vh;z-index:2;font-family:Arial,sans-serif}
+#stRecent .c{background:#ffffff1c;border:1px solid #ffffff33;border-radius:3vw;padding:.6vh 1.2vw;font-size:1.5vw;color:#e8f3ea}
+#stRecent .c b{color:#ffe08a}
+#stBar{z-index:3;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:1vh;opacity:.22;transition:opacity .25s;font-family:Arial,sans-serif;width:100%}
+#stBar:hover,#stBar:focus-within{opacity:1}
+#stBar button{background:#ffffff22;color:#fff;border:1px solid #ffffff44;font-size:15px;padding:8px 14px}
+#stBar button.go{background:#e0a83a;color:#2a1a00;font-weight:bold}
+#stBar input{width:300px;background:#0006;color:#fff;border:1px solid #ffffff44}
+#stBar input::placeholder{color:#ffffff88}
+#stInfo{z-index:3;font-size:1.2vw;color:#a8c9b0;font-family:Arial,sans-serif;margin-top:.6vh}
+#confetti{position:absolute;inset:0;z-index:4;pointer-events:none;width:100%;height:100%}
+.leaf{position:absolute;top:-10vh;font-size:3vw;opacity:.55;z-index:1;pointer-events:none;animation:fall linear infinite}
+@keyframes fall{0%{transform:translate3d(0,-10vh,0) rotate(0)}50%{transform:translate3d(6vw,55vh,0) rotate(180deg)}100%{transform:translate3d(-3vw,115vh,0) rotate(360deg)}}
+
+@media print{header input{border:0}#setup,#rules,#draw,.noprint,#stage{display:none!important}main{display:block;padding:0}section{box-shadow:none}body{background:#fff}header{background:#fff;color:#000}header input{color:#000}}
+</style>
+</head>
+<body>
+<header><input type="text" id="title" placeholder="Navn på lotteri (klikk for å skrive)"></header>
+<main>
+<section id="setup">
+<h2>1. Legg til loddbøker</h2>
+<div class="add">
+<div><label>Bokstav / prefiks</label><input type="text" id="pre" maxlength="6" placeholder="K" autocomplete="off"></div>
+<div><label>Fra nr.</label><input type="number" id="from" min="0" value="1"></div>
+<div><label>Til nr.</label><input type="number" id="to" min="0" value="100"></div>
+<button id="addbtn">Legg til</button>
+</div>
+<div class="chips"><span>Hurtigvalg:</span><span id="chips"></span></div>
+<div class="note">Legg til en bok etter hvert som den selges. «Til nr.» er siste solgte lodd – hvis dere bare selger 63 av 100, skriv 63. Tallene kan endres senere. Samme lodd telles bare én gang.</div>
+<div id="books"></div>
+<div class="note" id="pool"></div>
+</section>
+<section id="rules">
+<h2>Projektor / storskjerm</h2>
+<p style="margin:0 0 8px">Sett opp alt her, og vis trekningen på en egen skjerm:</p>
+<div class="row" style="margin-top:0">
+<button id="openvis">Åpne projektorvisning i nytt vindu</button>
+<button class="sec" id="openpres">Fullskjerm i dette vinduet</button>
+<button class="sec" id="mutebtn2">Lyd: av</button>
+</div>
+<div class="note"><b>To vinduer:</b> åpne projektorvisningen, dra vinduet over til projektoren og trykk <b>F</b> (fullskjerm). Du styrer fra dette vinduet, eller fra projektorvinduet med mellomrom. Begge vinduene holdes synkronisert.<br><b>Taster i visningen:</b> mellomrom = trekk · N = ikke til stede · F = fullskjerm · M = lyd av/på · Esc = lukk.</div>
+<div class="row">
+<button class="sec" id="undo">Angre siste trekning</button>
+<button class="red" id="reset">Nullstill alt</button>
+</div>
+</section>
+<section id="draw">
+<h2>2. Trekning</h2>
+<div class="prize"><input type="text" id="prize" placeholder="Premie (valgfritt), f.eks. Gavekort 500 kr"></div>
+<div>Siste trukne lodd:</div>
+<div id="last">–</div>
+<div class="row" style="margin-top:0">
+<button id="drawbtn">Trekk lodd</button>
+<button class="sec" id="absent" disabled>Ikke til stede – trekk på nytt</button>
+</div>
+</section>
+<section id="hist">
+<h2>Vinnerliste</h2>
+<table><thead><tr><th>#</th><th>Lodd</th><th>Premie</th><th>Vinner (navn / tlf.)</th></tr></thead><tbody id="rows"></tbody></table>
+<div class="row noprint"><button class="sec" onclick="window.print()">Skriv ut vinnerlisten</button></div>
+</section>
+</main>
+
+<div id="stage">
+<canvas id="confetti"></canvas>
+<div class="top"><div id="stTitle"></div><div id="stSub"></div></div>
+<div id="stPrize"></div>
+<div id="tkwrap"><div id="tk">–</div></div>
+<div id="stRecent"></div>
+<div id="stInfo"></div>
+<div id="stBar">
+<input type="text" id="prize2" placeholder="Neste premie (valgfritt)">
+<button class="go" id="drawbtn2">Trekk lodd</button>
+<button id="absent2">Ikke til stede</button>
+<button id="fsbtn">Fullskjerm (F)</button>
+<button id="mutebtn">Lyd: av (M)</button>
+<button id="closebtn">Lukk (Esc)</button>
+</div>
+</div>
+
+<script>
+const KEY="lotteri_generell_v3",SUGG="KRSTBGD".split("");
+let st={title:"Skautrollet 4H – Høstfest lotteri",books:[],draws:[],nid:1,prize:""};
+const loadSt=()=>{try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.books&&s.draws)return s;}catch(e){}return null;};
+st=loadSt()||st;
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}};
+const $=id=>document.getElementById(id);
+const isVis=location.hash==="#vis";
+if(isVis)document.body.classList.add("vis");
+let bc=null;try{bc=new BroadcastChannel("lotteri_v3");}catch(e){}
+const send=m=>{try{bc&&bc.postMessage(m);}catch(e){}};
+
+function rnd(n){const lim=Math.floor(4294967296/n)*n,a=new Uint32Array(1);do{crypto.getRandomValues(a);}while(a[0]>=lim);return a[0]%n;}
+function allTickets(){const s=new Set();st.books.forEach(b=>{for(let i=b.from;i<=b.to;i++)s.add(b.pre+i);});return s;}
+function pool(){const used=new Set(st.draws.map(d=>d.t));return[...allTickets()].filter(t=>!used.has(t));}
+const validCount=()=>st.draws.filter(d=>!d.void).length;
+
+/* ---------- Oppsett ---------- */
+function addBook(){
+  const pre=$("pre").value.trim().toUpperCase(),from=parseInt($("from").value),to=parseInt($("to").value);
+  if(!pre){$("pre").focus();return;}
+  if(isNaN(from)||isNaN(to)||to<from){alert("Sjekk fra- og til-nummer.");return;}
+  st.books.push({id:st.nid++,pre,from,to});
+  commit();$("pre").value="";$("from").value=1;$("to").value=100;$("pre").focus();
+}
+function renderChips(){
+  const have=new Set(st.books.map(b=>b.pre));$("chips").innerHTML="";
+  SUGG.filter(l=>!have.has(l)).forEach(l=>{const c=document.createElement("button");c.className="chip";c.textContent=l;
+    c.onclick=()=>{$("pre").value=l;$("to").focus();$("to").select();};$("chips").appendChild(c);$("chips").appendChild(document.createTextNode(" "));});
+}
+function renderBooks(){
+  const box=$("books");box.innerHTML="";
+  if(!st.books.length){box.innerHTML='<div class="note">Ingen loddbøker lagt til ennå.</div>';return;}
+  st.books.forEach(b=>{
+    const d=document.createElement("div");d.className="book";
+    d.innerHTML=`<b></b><input type="number" min="0" value="${b.from}"><span>–</span><input type="number" min="0" value="${b.to}"><span class="n"></span><button class="x" title="Fjern bok">✕</button>`;
+    d.children[0].textContent=b.pre;
+    d.children[4].textContent=Math.max(0,b.to-b.from+1)+" lodd";
+    d.children[1].onchange=e=>{const v=parseInt(e.target.value);if(!isNaN(v)&&v<=b.to){b.from=v;commit();}else e.target.value=b.from;};
+    d.children[3].onchange=e=>{const v=parseInt(e.target.value);if(!isNaN(v)&&v>=b.from){b.to=v;commit();}else e.target.value=b.to;};
+    d.children[5].onclick=()=>{
+      const won=st.draws.filter(x=>!x.void&&x.t.startsWith(b.pre)).length;
+      if(confirm("Fjerne bok "+b.pre+(won?" (har "+won+" vinnerlodd i listen – de blir stående)":"")+"?")){st.books=st.books.filter(x=>x.id!==b.id);commit();}};
+    box.appendChild(d);
+  });
+}
+
+/* ---------- Visning ---------- */
+function fitTicket(t){const n=Math.max(1,t.length);$("tk").style.fontSize=`min(${Math.min(19,70/n)}vw,34vh)`;}
+function setTicket(t,cls){const e=$("tk");e.textContent=t;fitTicket(t);e.className=cls||"";}
+function renderStage(){
+  $("stTitle").textContent=st.title||"Lotteritrekning";
+  const p=pool(),n=validCount();
+  $("stSub").textContent=spinning?"Trekker…":(n?`Trekning nr. ${n}`:"Velkommen – klar for trekning");
+  const pz=$("stPrize");pz.innerHTML="";if(st.prize){const s=document.createElement("span");s.textContent="🎁 "+st.prize;pz.appendChild(s);}
+  const rec=$("stRecent");rec.innerHTML="";
+  let num=n;st.draws.filter(d=>!d.void).slice(-6).reverse().forEach(d=>{const c=document.createElement("div");c.className="c";
+    c.innerHTML=`<b></b> `;c.firstChild.textContent="#"+num--+"  "+d.t;if(d.prize)c.appendChild(document.createTextNode(" · "+d.prize));rec.appendChild(c);});
+  $("stInfo").textContent=allTickets().size?`${p.length} lodd igjen i trommelen`:"Legg til loddbøker i oppsettet";
+  if(!spinning){
+    const last=st.draws[st.draws.length-1];
+    if(last)setTicket(last.t,last.void?"void":"");
+    else setTicket(allTickets().size?"?":"–","");
+  }
+  const ok=!spinning&&p.length>0,l=st.draws[st.draws.length-1];
+  $("drawbtn2").disabled=!ok;$("absent2").disabled=!(ok&&l&&!l.void);
+  const f=$("prize2");if(document.activeElement!==f)f.value=st.prize||"";
+}
+
+/* ---------- Render alt ---------- */
+function render(){
+  renderChips();renderBooks();
+  const p=pool(),tot=allTickets().size;
+  $("pool").textContent=`Lodd i trekningen: ${tot} · Igjen å trekke fra: ${p.length} · Premier trukket: ${validCount()}`;
+  const last=st.draws[st.draws.length-1];
+  $("drawbtn").disabled=spinning||p.length===0;
+  $("absent").disabled=spinning||!last||last.void||p.length===0;
+  $("last").textContent=last?last.t:"–";$("last").className=last&&last.void?"void":"";
+  const tb=$("rows");tb.innerHTML="";let n=0;
+  st.draws.forEach(d=>{
+    const tr=document.createElement("tr");if(d.void)tr.className="void";
+    tr.innerHTML=`<td>${d.void?"":++n}</td><td class="t"></td><td></td><td>${d.void?"ikke til stede":""}</td>`;
+    tr.children[1].textContent=d.t;tr.children[2].textContent=d.prize||"";tb.appendChild(tr);
+  });
+  const pf=$("prize");if(document.activeElement!==pf)pf.value=st.prize||"";
+  if(document.activeElement!==$("title"))$("title").value=st.title||"";
+  document.title=st.title||"Lotteritrekning";
+  const ml="Lyd: "+(isMuted()?"av":"på");$("mutebtn").textContent=ml+" (M)";$("mutebtn2").textContent=ml;
+  renderStage();
+}
+function commit(){save();send({k:"state",state:st});render();}
+
+/* ---------- Lyd ---------- */
+let ac=null;const isMuted=()=>st.muted!==false; // standard: lyd av
+function beep(f,d,type,vol,when){if(isMuted())return;try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+  const o=ac.createOscillator(),g=ac.createGain();o.type=type||"square";o.frequency.value=f;
+  const t0=ac.currentTime+(when||0);g.gain.setValueAtTime(vol||.05,t0);g.gain.exponentialRampToValueAtTime(.0001,t0+d);
+  o.connect(g);g.connect(ac.destination);o.start(t0);o.stop(t0+d+.02);}catch(e){}}
+const tick=()=>beep(380+rnd(200),.05,"square",.03);
+function fanfare(){[523,659,784,1047,784,1047].forEach((f,i)=>beep(f,.35,"triangle",.12,i*.13));}
+function buzz(){beep(160,.4,"sawtooth",.08);}
+
+/* ---------- Konfetti ---------- */
+function confetti(){
+  const cv=$("confetti"),ctx=cv.getContext&&cv.getContext("2d");if(!ctx)return;
+  cv.width=cv.clientWidth;cv.height=cv.clientHeight;
+  const cols=["#ffd34d","#ff6b4a","#7bd88f","#5cc8ff","#ff8fd1","#ffffff"];
+  const P=Array.from({length:260},()=>({x:cv.width/2+(Math.random()-.5)*cv.width*.3,y:cv.height*.45,vx:(Math.random()-.5)*30,vy:-Math.random()*26-6,
+    s:6+Math.random()*9,r:Math.random()*6,vr:(Math.random()-.5)*.4,c:cols[rnd(cols.length)]}));
+  const t0=performance.now();
+  (function f(now){const t=now-t0;ctx.clearRect(0,0,cv.width,cv.height);
+    P.forEach(p=>{p.vy+=.55;p.vx*=.992;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillStyle=p.c;ctx.fillRect(-p.s/2,-p.s/3,p.s,p.s*.6);ctx.restore();});
+    if(t<5200)requestAnimationFrame(f);else ctx.clearRect(0,0,cv.width,cv.height);})(t0);
+}
+(function leaves(){const e=["🍂","🍁","🍂","🍀"];for(let i=0;i<16;i++){const s=document.createElement("span");s.className="leaf";s.textContent=e[i%4];
+  s.style.left=(Math.random()*100)+"vw";s.style.animationDuration=(14+Math.random()*16)+"s";s.style.animationDelay=(-Math.random()*25)+"s";
+  s.style.fontSize=(2+Math.random()*2.5)+"vw";$("stage").appendChild(s);}})();
+
+/* ---------- Trekning ---------- */
+let spinning=false,spinTimer=null,spinSafety=null;
+function showSpinFrame(){const p=pool();if(p.length){setTicket(p[rnd(p.length)],"spin");tick();}}
+function startSpinVisual(){ // andre vindu: bare visuell rulling
+  spinning=true;render();
+  (function loop(){if(!spinning)return;showSpinFrame();spinTimer=setTimeout(loop,90);})();
+  clearTimeout(spinSafety);spinSafety=setTimeout(()=>{spinning=false;render();},12000);
+}
+function reveal(t){
+  clearTimeout(spinTimer);clearTimeout(spinSafety);spinning=false;render();
+  setTicket(t,"pop");fanfare();confetti();
+}
+function doDraw(){
+  if(spinning)return;const p=pool();if(!p.length)return;
+  spinning=true;send({k:"spin"});render();
+  const final=p[rnd(p.length)];let delay=55,elapsed=0;
+  (function step(){
+    if(elapsed>=1800){
+      st.draws.push({t:final,prize:(st.prize||"").trim(),void:false});
+      save();send({k:"state",state:st,reveal:final});reveal(final);return;}
+    showSpinFrame();elapsed+=delay;delay*=1.07;spinTimer=setTimeout(step,delay);
+  })();
+}
+function doAbsent(){
+  if(spinning)return;const last=st.draws[st.draws.length-1];if(!last||last.void)return;
+  last.void=true;buzz();commit();setTimeout(doDraw,1400);
+}
+
+/* ---------- Presentasjon ---------- */
+function openPres(){document.body.classList.add("pres");render();}
+function closePres(){document.body.classList.remove("pres");if(document.fullscreenElement)document.exitFullscreen();}
+function toggleFS(){if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();}
+function toggleMute(){st.muted=!isMuted();commit();}
+const stageOpen=()=>document.body.classList.contains("pres")||document.body.classList.contains("vis");
+
+/* ---------- Hendelser ---------- */
+$("addbtn").onclick=addBook;
+["pre","from","to"].forEach(i=>$(i).addEventListener("keydown",e=>{if(e.key==="Enter")addBook();}));
+$("title").oninput=()=>{st.title=$("title").value;commit();};
+$("prize").oninput=()=>{st.prize=$("prize").value;commit();};
+$("prize2").oninput=()=>{st.prize=$("prize2").value;commit();};
+$("drawbtn").onclick=doDraw;$("drawbtn2").onclick=doDraw;
+$("absent").onclick=doAbsent;$("absent2").onclick=doAbsent;
+$("undo").onclick=()=>{if(st.draws.length&&confirm("Fjerne siste trekning ("+st.draws[st.draws.length-1].t+")? Loddet blir tilgjengelig igjen.")){st.draws.pop();commit();}};
+$("reset").onclick=()=>{if(confirm("Nullstille ALT (loddbøker og trekninger)?")){st.books=[];st.draws=[];st.prize="";commit();}};
+$("openvis").onclick=()=>window.open(location.href.split("#")[0]+"#vis","lotteri_vis","width=1280,height=720");
+$("openpres").onclick=()=>{openPres();toggleFS();};
+$("closebtn").onclick=closePres;
+$("fsbtn").onclick=toggleFS;$("mutebtn").onclick=toggleMute;$("mutebtn2").onclick=toggleMute;
+if(isVis)$("closebtn").style.display="none";
+document.addEventListener("keydown",e=>{
+  if(!stageOpen()||/INPUT|TEXTAREA/.test(e.target.tagName))return;
+  const k=e.key.toLowerCase();
+  if(k===" "||k==="enter"){e.preventDefault();doDraw();}
+  else if(k==="n")doAbsent();
+  else if(k==="f")toggleFS();
+  else if(k==="m")toggleMute();
+  else if(k==="escape"&&!isVis)closePres();
+});
+if(bc)bc.onmessage=e=>{const m=e.data;if(!m)return;
+  if(m.k==="spin")startSpinVisual();
+  else if(m.k==="state"){st=m.state;save();if(m.reveal){reveal(m.reveal);}else render();}};
+window.addEventListener("storage",e=>{if(e.key===KEY&&!spinning){const s=loadSt();if(s){st=s;render();}}});
+render();
+</script>
+</body>
+</html>
