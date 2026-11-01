@@ -2,6 +2,16 @@
 
 Et enkelt verktøy for å trekke vinnere i lotteri, laget for Skautrollet 4H. Alt ligger i én HTML-fil (`Lotteritrekning.html`). Du trenger ikke installere noe, og det trengs ingen server eller internettforbindelse.
 
+## Skjermbilder
+
+**Hovedvisning**: oppsett av loddbøker, trekning og vinnerliste.
+
+![Hovedvisning](docs/hovedvisning.png)
+
+**Projektorvisning**: vises på storskjerm under trekningen.
+
+![Projektorvisning](docs/projektorvisning.png)
+
 ## Funksjoner
 
 - Legg til loddbøker med bokstav/prefiks og nummerserie, for eksempel `K 1–63`.
